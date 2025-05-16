@@ -115,22 +115,85 @@ public class ExcelService {
             // Add empty row
             sheet.createRow(rowNum++);            // Section A: Completed Items
             Row sectionARow = sheet.createRow(rowNum++);
-            Cell sectionAHeaderCell = sectionARow.createCell(0); // Changed variable name
-            sectionAHeaderCell.setCellValue("A.\tCompleted Items");
-            Cell sectionATeamCell = sectionARow.createCell(1); // Changed variable name
-            sectionATeamCell.setCellValue("Team");
-            sectionATeamCell.setCellStyle(boldStyle);
-            sheet.addMergedRegion(new CellRangeAddress(rowNum - 1, rowNum - 1, 0, 3));            // Add completed items by project
-            rowNum = addProjectItemsSection(sheet, rowNum, completedIssues, boldStyle, normalStyle);// Section B: InProgress Items
+            Cell sectionAHeaderCell = sectionARow.createCell(0);
+            sectionAHeaderCell.setCellValue("A.");
+            sectionAHeaderCell.setCellStyle(boldStyle);
+
+            Cell completedItemsHeader = sectionARow.createCell(1);
+            completedItemsHeader.setCellValue("Completed Items");
+            completedItemsHeader.setCellStyle(boldStyle);
+
+            // Add column headers for the completed items section
+            Row columnHeaderRow = sheet.createRow(rowNum++);
+            // Empty cells for A. and project name columns
+            columnHeaderRow.createCell(0);
+            columnHeaderRow.createCell(1);
+            // Project name header
+            Cell projectNameCell = columnHeaderRow.createCell(1);
+            projectNameCell.setCellValue("Project Name");
+            projectNameCell.setCellStyle(boldStyle);
+
+            // Issue key header
+            Cell keyHeader = columnHeaderRow.createCell(2);
+            keyHeader.setCellValue("Issue");
+            keyHeader.setCellStyle(boldStyle);
+
+            // Summary header
+            Cell summaryHeader = columnHeaderRow.createCell(3);
+            summaryHeader.setCellValue("Description");
+            summaryHeader.setCellStyle(boldStyle);
+
+            // Team header
+            Cell teamHeader = columnHeaderRow.createCell(4);
+            teamHeader.setCellValue("Team");
+            teamHeader.setCellStyle(boldStyle);
+
+            // Add completed items by project
+            rowNum = addProjectItemsSection(sheet, rowNum, completedIssues, boldStyle, normalStyle);
+
+            // Section B: InProgress Items
             Row sectionBRow = sheet.createRow(rowNum++);
             Cell sectionBCell = sectionBRow.createCell(0);
-            sectionBCell.setCellValue("B.\tInProgress Items");
+            sectionBCell.setCellValue("B.");
             sectionBCell.setCellStyle(boldStyle);
-            sheet.addMergedRegion(new CellRangeAddress(rowNum - 1, rowNum - 1, 0, 3));            // Add in-progress items by project
-            addProjectItemsSection(sheet, rowNum, inProgressIssues, boldStyle, normalStyle);            // Auto-size columns
+
+            Cell inProgressItemsHeader = sectionBRow.createCell(1);
+            inProgressItemsHeader.setCellValue("In Progress Items");
+            inProgressItemsHeader.setCellStyle(boldStyle);
+
+            // Add column headers for the in progress items section
+            Row inProgressColumnHeaderRow = sheet.createRow(rowNum++);
+            // Empty cells for B. and project name columns
+            inProgressColumnHeaderRow.createCell(0);
+            inProgressColumnHeaderRow.createCell(1);
+
+            // Issue key header
+            Cell inProgressKeyHeader = inProgressColumnHeaderRow.createCell(2);
+            inProgressKeyHeader.setCellValue("Issue");
+            inProgressKeyHeader.setCellStyle(boldStyle);
+
+            // Summary header
+            Cell inProgressSummaryHeader = inProgressColumnHeaderRow.createCell(3);
+            inProgressSummaryHeader.setCellValue("Description");
+            inProgressSummaryHeader.setCellStyle(boldStyle);
+
+            // Team header
+            Cell inProgressTeamHeader = inProgressColumnHeaderRow.createCell(4);
+            inProgressTeamHeader.setCellValue("Team");
+            inProgressTeamHeader.setCellStyle(boldStyle);
+
+            // Add in-progress items by project
+            addProjectItemsSection(sheet, rowNum, inProgressIssues, boldStyle, normalStyle);// Auto-size columns            // Auto-size columns for better readability
             for (int i = 0; i <= 4; i++) {
                 sheet.autoSizeColumn(i);
             }
+
+            // Set specific column widths to match the markdown table format
+            sheet.setColumnWidth(0, 1500);  // A column - narrow for section letters
+            sheet.setColumnWidth(1, 5000);  // B column - for bullet points and project names
+            sheet.setColumnWidth(2, 3500);  // C column - for issue keys
+            sheet.setColumnWidth(3, 15000); // D column - wider for descriptions
+            sheet.setColumnWidth(4, 4000);  // E column - for team names
 
             // Create directory structure
             File parentDir = new File("..").getAbsoluteFile();
@@ -174,30 +237,34 @@ public class ExcelService {
 
             // Add project name
             Row projectRow = sheet.createRow(rowNum++);
-            Cell projectCell = projectRow.createCell(0);
-            projectCell.setCellValue("\t" + projectName);
+            Cell projectCell = projectRow.createCell(1);
+            projectCell.setCellValue(projectName);
             projectCell.setCellStyle(projectStyle);
-            sheet.addMergedRegion(new CellRangeAddress(rowNum - 1, rowNum - 1, 0, 3));            // Add issues with bullet points
+
+            // Add issues with bullet points
             for (JiraIssue issue : issues) {
                 Row issueRow = sheet.createRow(rowNum++);
 
-                // Add bullet point in first column
-                Cell bulletCell = issueRow.createCell(0);
-                bulletCell.setCellValue("\t" + BULLET_SYMBOL);
+                // Add empty first column (for indentation)
+                issueRow.createCell(0);
+
+                // Add bullet point in second column
+                Cell bulletCell = issueRow.createCell(1);
+                bulletCell.setCellValue(BULLET_SYMBOL);
                 bulletCell.setCellStyle(bulletStyle);
 
-                // Add issue key in second column
-                Cell keyCell = issueRow.createCell(1);
+                // Add issue key in third column
+                Cell keyCell = issueRow.createCell(2);
                 keyCell.setCellValue(issue.getKey());
                 keyCell.setCellStyle(bulletStyle);
 
-                // Add issue summary in third column
-                Cell summaryCell = issueRow.createCell(2);
+                // Add issue summary in fourth column
+                Cell summaryCell = issueRow.createCell(3);
                 summaryCell.setCellValue(issue.getFields().getSummary());
                 summaryCell.setCellStyle(bulletStyle);
 
-                // Add team name in fourth column
-                Cell teamCell = issueRow.createCell(3);
+                // Add team name in fifth column
+                Cell teamCell = issueRow.createCell(4);
                 String teamName = getTeamName(issue); // Extract team name from issue
                 teamCell.setCellValue(teamName);
                 teamCell.setCellStyle(bulletStyle);
@@ -208,7 +275,7 @@ public class ExcelService {
         }
 
         return rowNum;
-    }    // We've replaced all the styled methods with simpler ones
+    }// We've replaced all the styled methods with simpler ones
 
     /**
      * Creates a simple bold style without colors
