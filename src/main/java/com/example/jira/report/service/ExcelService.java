@@ -229,28 +229,105 @@ public class ExcelService {
     }
 
     /**
-     * Extracts the team name from a Jira issue directly from the Jira API Note:
-     * Currently, the customfield_10006 is not being returned by the Jira API
-     * for any issues. This method will be ready to use as soon as the Team
-     * field (customfield_10006) is configured in Jira.
+     * Extracts the team name from a Jira issue directly from the Jira API using
+     * customfield_10001 which contains the team information.
      */
     private String getTeamName(JiraIssue issue) {
-        // First try to get from customfield_10006 (TeamField) if available from API
-        if (issue.getFields().getTeamField() != null) {
-            // Try to get displayName first
-            String teamName = issue.getFields().getTeamField().getDisplayName();
-            if (teamName != null && !teamName.isEmpty()) {
-                return teamName;
+        try {
+            // Debug output to help diagnose issues
+            System.out.println("Issue key: " + issue.getKey());
+            System.out.println("Has fields: " + (issue.getFields() != null));
+
+            if (issue.getFields() == null) {
+                return "No fields available";
             }
 
-            // Fall back to value field within TeamField if displayName is not available
-            teamName = issue.getFields().getTeamField().getValue();
-            if (teamName != null && !teamName.isEmpty()) {
-                return teamName;
+            // Use reflection to access fields directly for debugging
+            System.out.println("Fields class: " + issue.getFields().getClass().getName());
+
+            try {
+                // Try to access customfield_10001 directly through reflection
+                java.lang.reflect.Field[] fields = issue.getFields().getClass().getDeclaredFields();
+                System.out.println("Available fields in Fields class:");
+                for (java.lang.reflect.Field field : fields) {
+                    field.setAccessible(true);
+                    String fieldName = field.getName();
+                    Object fieldValue = field.get(issue.getFields());
+                    System.out.println("  - " + fieldName + ": " + (fieldValue != null ? fieldValue.getClass().getName() : "null"));
+
+                    // Check if this is our team field
+                    if (fieldName.equals("customfield_10001")) {
+                        System.out.println("    Found customfield_10001: " + fieldValue);
+                        if (fieldValue != null) {
+                            // If it's a Map or has a name/title property, try to extract it
+                            if (fieldValue instanceof Map) {
+                                Map<?, ?> map = (Map<?, ?>) fieldValue;
+                                if (map.containsKey("name")) {
+                                    return map.get("name").toString();
+                                } else if (map.containsKey("title")) {
+                                    return map.get("title").toString();
+                                } else if (map.containsKey("id")) {
+                                    return map.get("id").toString();
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("Error accessing fields via reflection: " + e.getMessage());
             }
+
+            // Check if TeamField exists through getter
+            System.out.println("Has team field: " + (issue.getFields().getTeamField() != null));
+
+            if (issue.getFields().getTeamField() != null) {
+                // Try to print the full team field object for debugging
+                System.out.println("TeamField toString: " + issue.getFields().getTeamField().toString());
+
+                // Try to get the name property first (most meaningful)
+                String teamName = issue.getFields().getTeamField().getName();
+                if (teamName != null && !teamName.isEmpty()) {
+                    System.out.println("Found team name: " + teamName);
+                    return teamName;
+                }
+
+                // Try the title property next
+                teamName = issue.getFields().getTeamField().getTitle();
+                if (teamName != null && !teamName.isEmpty()) {
+                    System.out.println("Found team title: " + teamName);
+                    return teamName;
+                }
+
+                // Fall back to ID as a last resort
+                teamName = issue.getFields().getTeamField().getId();
+                if (teamName != null && !teamName.isEmpty()) {
+                    System.out.println("Using team ID as fallback: " + teamName);
+                    return teamName;
+                }
+
+                // If we get here, the TeamField object exists but has no usable properties
+                return "Team field data incomplete";
+            }
+
+            // Fall back approach: Try to directly access fields with alternative naming
+            try {
+                java.lang.reflect.Method method = issue.getFields().getClass().getMethod("getCustomfield_10001");
+                Object result = method.invoke(issue.getFields());
+                if (result != null) {
+                    System.out.println("Direct access to customfield_10001 successful, type: " + result.getClass().getName());
+                    return "Team: " + result.toString();
+                }
+            } catch (Exception e) {
+                System.out.println("Error with direct method access: " + e.getMessage());
+            }
+
+            // If we reach here, the team field wasn't found in the API response
+            System.out.println("No team field found for issue: " + issue.getKey());
+            return "No team assigned";
+        } catch (Exception e) {
+            System.err.println("Error extracting team name for issue " + issue.getKey() + ": " + e.getMessage());
+            e.printStackTrace();
+            return "Error: " + e.getMessage();
         }
-
-        // For now, return a message indicating the need to configure the team field in Jira
-        return "Team field not available in Jira API";
     }
 }

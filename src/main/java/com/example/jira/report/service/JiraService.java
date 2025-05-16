@@ -62,9 +62,8 @@ public class JiraService {
         // Use the RestTemplate's exchange method for more control
         System.out.println("Fetching issues for project key: " + projectKey);
         // Use a map for query parameters to ensure proper encoding
-        UriComponentsBuilder builder = UriComponentsBuilder
-                .fromUriString(baseUrl + "/search")
-                .queryParam("fields", "summary,status,assignee,components,customfield_10006")
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl + "/search")
+                .queryParam("fields", "summary,status,assignee,components,customfield_10001")
                 .queryParam("maxResults", 500);
 
         // Add the JQL parameter with proper encoding
